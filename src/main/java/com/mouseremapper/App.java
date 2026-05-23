@@ -12,6 +12,11 @@ import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import javafx.stage.Screen;
 
+import java.awt.SystemTray;
+import java.awt.TrayIcon;
+import java.awt.PopupMenu;
+import java.awt.MenuItem;
+
 import java.util.*;
 
 public class App extends Application {
@@ -70,6 +75,8 @@ public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        Platform.setImplicitExit(false); // Keep running in background
+
         // Load initial config presets
         configManager.loadConfig();
 
@@ -173,12 +180,66 @@ public class App extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(620);
         primaryStage.setMinHeight(500);
+        
+        setupSystemTray(primaryStage);
+        
         primaryStage.setOnCloseRequest(e -> {
-            hookManager.stopHook();
-            Platform.exit();
-            System.exit(0);
+            e.consume(); // Prevent default exit
+            primaryStage.hide(); // Minimize to tray
         });
         primaryStage.show();
+    }
+
+    private java.awt.Image createTrayIconImage() {
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D g2d = img.createGraphics();
+        g2d.setColor(java.awt.Color.decode("#8B5CF6")); // Purple
+        g2d.fillRect(0, 0, 16, 16);
+        g2d.setColor(java.awt.Color.WHITE);
+        g2d.drawRect(0, 0, 15, 15);
+        g2d.dispose();
+        return img;
+    }
+
+    private void setupSystemTray(Stage primaryStage) {
+        if (SystemTray.isSupported()) {
+            SystemTray tray = SystemTray.getSystemTray();
+            
+            PopupMenu popup = new PopupMenu();
+            MenuItem openItem = new MenuItem("Open Dashboard");
+            openItem.addActionListener(e -> Platform.runLater(() -> {
+                primaryStage.show();
+                primaryStage.toFront();
+            }));
+            
+            MenuItem toggleItem = new MenuItem("Toggle Hook");
+            toggleItem.addActionListener(e -> Platform.runLater(this::toggleHook));
+            
+            MenuItem exitItem = new MenuItem("Exit");
+            exitItem.addActionListener(e -> {
+                hookManager.stopHook();
+                Platform.exit();
+                System.exit(0);
+            });
+            
+            popup.add(openItem);
+            popup.add(toggleItem);
+            popup.addSeparator();
+            popup.add(exitItem);
+            
+            TrayIcon trayIcon = new TrayIcon(createTrayIconImage(), "Mouse Remapper", popup);
+            trayIcon.setImageAutoSize(true);
+            trayIcon.addActionListener(e -> Platform.runLater(() -> {
+                primaryStage.show();
+                primaryStage.toFront();
+            })); // Double click to open
+            
+            try {
+                tray.add(trayIcon);
+            } catch (java.awt.AWTException e) {
+                System.err.println("TrayIcon could not be added.");
+            }
+        }
     }
 
     private VBox createButtonCard(int buttonIndex) {
