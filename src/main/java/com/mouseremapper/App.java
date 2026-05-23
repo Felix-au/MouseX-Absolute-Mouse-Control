@@ -53,6 +53,8 @@ public class App extends Application {
         CheckBox enableCheck;
         CheckBox repeatCheck;
         CheckBox untilClickCheck;
+        Slider repeatIntervalSlider;
+        Label repeatIntervalLabel;
         CheckBox[] slotChecks = new CheckBox[3];
         @SuppressWarnings("unchecked")
         ComboBox<String>[] slotCombos = new ComboBox[3];
@@ -234,15 +236,30 @@ public class App extends Application {
         controls.untilClickCheck = new CheckBox("Repeat until click");
         controls.untilClickCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
 
+        controls.repeatIntervalSlider = new Slider(10, 1000, 100);
+        controls.repeatIntervalSlider.setPrefWidth(100);
+        controls.repeatIntervalLabel = new Label("100ms");
+        controls.repeatIntervalLabel.setStyle("-fx-text-fill: #A0AEC0; -fx-font-size: 11px;");
+        
+        controls.repeatIntervalSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            controls.repeatIntervalLabel.setText(newVal.intValue() + "ms");
+            updateRemap(buttonIndex);
+        });
+
+        HBox sliderBox = new HBox(6, controls.repeatIntervalSlider, controls.repeatIntervalLabel);
+        sliderBox.setAlignment(Pos.CENTER_LEFT);
+
         if (buttonIndex == 6 || buttonIndex == 7) {
             controls.repeatCheck.setVisible(false);
             controls.untilClickCheck.setVisible(false);
+            sliderBox.setVisible(false);
         } else {
             // Disable until click checkbox if repeat is not enabled
             controls.untilClickCheck.disableProperty().bind(controls.repeatCheck.selectedProperty().not());
+            sliderBox.visibleProperty().bind(controls.repeatCheck.selectedProperty());
         }
 
-        settingsRow.getChildren().addAll(controls.enableCheck, controls.repeatCheck, controls.untilClickCheck);
+        settingsRow.getChildren().addAll(controls.enableCheck, controls.repeatCheck, controls.untilClickCheck, sliderBox);
         card.getChildren().add(settingsRow);
 
         return card;
@@ -270,7 +287,8 @@ public class App extends Application {
                 keys,
                 controls.enableCheck.isSelected(),
                 controls.repeatCheck.isSelected(),
-                controls.untilClickCheck.isSelected()
+                controls.untilClickCheck.isSelected(),
+                (int) controls.repeatIntervalSlider.getValue()
         );
     }
 
@@ -286,6 +304,7 @@ public class App extends Application {
                 controls.enableCheck.setSelected(cfg.isRemapped);
                 controls.repeatCheck.setSelected(cfg.repeatEnabled);
                 controls.untilClickCheck.setSelected(cfg.repeatUntilClick);
+                controls.repeatIntervalSlider.setValue(cfg.repeatIntervalMs);
 
                 // Clear slots first
                 for (int j = 0; j < 3; j++) {

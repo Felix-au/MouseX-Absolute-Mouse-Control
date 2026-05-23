@@ -28,6 +28,7 @@ public class HookManager {
         public boolean isRemapped = false;
         public boolean repeatEnabled = false;
         public boolean repeatUntilClick = false;
+        public int repeatIntervalMs = 100;
     }
 
     // Custom MSLLHOOKSTRUCT definition to ensure full public access across all JNA versions
@@ -83,13 +84,14 @@ public class HookManager {
         }
     }
 
-    public synchronized void setRemap(int button, List<Integer> keys, boolean remap, boolean repeat, boolean untilClick) {
+    public synchronized void setRemap(int button, List<Integer> keys, boolean remap, boolean repeat, boolean untilClick, int repeatIntervalMs) {
         RemapConfig cfg = config.get(button);
         if (cfg != null) {
             cfg.virtualKeys = new ArrayList<>(keys);
             cfg.isRemapped = remap;
             cfg.repeatEnabled = repeat;
             cfg.repeatUntilClick = untilClick;
+            cfg.repeatIntervalMs = repeatIntervalMs;
         }
     }
 
@@ -221,11 +223,12 @@ public class HookManager {
                                 } else {
                                     repeatActive[btnIdx].set(true);
                                     final int buttonToRepeat = btn;
+                                    final int interval = cfg.repeatIntervalMs;
                                     Thread repeatThread = new Thread(() -> {
                                         while (repeatActive[btnIdx].get() && hookActive) {
                                             simulateKey(buttonToRepeat);
                                             try {
-                                                Thread.sleep(100);
+                                                Thread.sleep(interval);
                                             } catch (InterruptedException e) {
                                                 break;
                                             }
@@ -238,11 +241,12 @@ public class HookManager {
                                 // Start repeating while held down
                                 repeatActive[btnIdx].set(true);
                                 final int buttonToRepeat = btn;
+                                final int interval = cfg.repeatIntervalMs;
                                 Thread repeatThread = new Thread(() -> {
                                     while (repeatActive[btnIdx].get() && hookActive) {
                                         simulateKey(buttonToRepeat);
                                         try {
-                                            Thread.sleep(100);
+                                            Thread.sleep(interval);
                                         } catch (InterruptedException e) {
                                             break;
                                         }
