@@ -22,6 +22,7 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.Psapi;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.platform.win32.WinNT.HANDLE;
+import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.ptr.IntByReference;
 
 import java.util.*;
@@ -66,8 +67,6 @@ public class App extends Application {
         CheckBox repeatCheck;
         CheckBox untilClickCheck;
         CheckBox chordCheck;
-        CheckBox useMacroCheck;
-        Button recordMacroBtn;
         Slider repeatIntervalSlider;
         Label repeatIntervalLabel;
         CheckBox[] slotChecks = new CheckBox[3];
@@ -136,9 +135,40 @@ public class App extends Application {
         Button addProfileBtn = new Button("+");
         addProfileBtn.getStyleClass().add("secondary-button");
         addProfileBtn.setOnAction(e -> {
-            TextInputDialog dialog = new TextInputDialog();
+            Set<String> runningApps = new TreeSet<>();
+            User32.INSTANCE.EnumWindows((hwnd, data) -> {
+                if (User32.INSTANCE.IsWindowVisible(hwnd)) {
+                    IntByReference pid = new IntByReference();
+                    User32.INSTANCE.GetWindowThreadProcessId(hwnd, pid);
+                    HANDLE process = Kernel32.INSTANCE.OpenProcess(0x0400 | 0x0010, false, pid.getValue());
+                    if (process != null) {
+                        char[] path = new char[1024];
+                        int len = Psapi.INSTANCE.GetModuleFileNameExW(process, null, path, path.length);
+                        Kernel32.INSTANCE.CloseHandle(process);
+                        if (len > 0) {
+                            String fullPath = new String(path, 0, len);
+                            int lastSlash = fullPath.lastIndexOf('\\');
+                            String exe = lastSlash >= 0 ? fullPath.substring(lastSlash + 1).toLowerCase() : fullPath.toLowerCase();
+                            runningApps.add(exe);
+                        }
+                    }
+                }
+                return true;
+            }, null);
+
+            List<String> appsList = new ArrayList<>(runningApps);
+            appsList.removeAll(allProfiles.keySet());
+
+            if (appsList.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION, "No new running applications found.");
+                alert.showAndWait();
+                return;
+            }
+
+            ChoiceDialog<String> dialog = new ChoiceDialog<>(appsList.get(0), appsList);
             dialog.setTitle("New App Profile");
-            dialog.setHeaderText("Enter executable name (e.g., chrome.exe)");
+            dialog.setHeaderText("Select a running application");
+            dialog.setContentText("Executable:");
             dialog.showAndWait().ifPresent(name -> {
                 String p = name.toLowerCase().trim();
                 if (!p.isEmpty() && !allProfiles.containsKey(p)) {
@@ -308,7 +338,7 @@ public class App extends Application {
         if (profile == null) return;
         for (Map.Entry<Integer, HookManager.RemapConfig> entry : profile.entrySet()) {
             HookManager.RemapConfig cfg = entry.getValue();
-            hookManager.setRemap(entry.getKey(), cfg.virtualKeys, cfg.isRemapped, cfg.repeatEnabled, cfg.repeatUntilClick, cfg.repeatIntervalMs, cfg.isChord, cfg.useMacro, cfg.macroSequence);
+            hookManager.setRemap(entry.getKey(), cfg.virtualKeys, cfg.isRemapped, cfg.repeatEnabled, cfg.repeatUntilClick, cfg.repeatIntervalMs, cfg.isChord);
         }
     }
 
@@ -422,40 +452,6 @@ public class App extends Application {
         controls.chordCheck = new CheckBox("As Chord");
         controls.chordCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
 
-        controls.useMacroCheck = new CheckBox("Use Macro");
-        controls.useMacroCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
-        
-        controls.recordMacroBtn = new Button("Record Macro");
-        controls.recordMacroBtn.getStyleClass().add("secondary-button");
-        controls.recordMacroBtn.setOnAction(e -> {
-            Alert startAlert = new Alert(Alert.AlertType.INFORMATION);
-            startAlert.setTitle("Macro Recorder");
-            startAlert.setHeaderText("Recording Macro for Button " + buttonIndex);
-            startAlert.setContentText("Press OK to start recording your keyboard inputs.\nIMPORTANT: Your keyboard will be intercepted while recording.");
-            startAlert.showAndWait().ifPresent(res -> {
-                hookManager.startRecordingMacro();
-                Alert stopAlert = new Alert(Alert.AlertType.WARNING);
-                stopAlert.setTitle("Recording in Progress");
-                stopAlert.setHeaderText("Recording...");
-                stopAlert.setContentText("Type your macro.\nWhen finished, CLICK OK BELOW with your MOUSE.");
-                stopAlert.showAndWait();
-                
-                List<HookManager.MacroEvent> seq = hookManager.stopRecordingMacro();
-                
-                Map<Integer, HookManager.RemapConfig> currentProfile = allProfiles.get(activeProfileName);
-                if (currentProfile != null) {
-                    HookManager.RemapConfig cfg = currentProfile.get(buttonIndex);
-                    if (cfg == null) {
-                        cfg = new HookManager.RemapConfig();
-                        currentProfile.put(buttonIndex, cfg);
-                    }
-                    cfg.macroSequence = seq;
-                    controls.useMacroCheck.setSelected(true);
-                    updateRemap(buttonIndex);
-                }
-            });
-        });
-
         controls.repeatIntervalSlider = new Slider(10, 1000, 100);
         controls.repeatIntervalSlider.setPrefWidth(100);
         controls.repeatIntervalLabel = new Label("100ms");
@@ -479,7 +475,7 @@ public class App extends Application {
             sliderBox.visibleProperty().bind(controls.repeatCheck.selectedProperty());
         }
 
-        settingsRow.getChildren().addAll(controls.enableCheck, controls.chordCheck, controls.useMacroCheck, controls.recordMacroBtn, controls.repeatCheck, controls.untilClickCheck, sliderBox);
+        settingsRow.getChildren().addAll(controls.enableCheck, controls.chordCheck, controls.repeatCheck, controls.untilClickCheck, sliderBox);
         card.getChildren().add(settingsRow);
 
         return card;
@@ -517,8 +513,6 @@ public class App extends Application {
         cfg.repeatUntilClick = controls.untilClickCheck.isSelected();
         cfg.repeatIntervalMs = (int) controls.repeatIntervalSlider.getValue();
         cfg.isChord = controls.chordCheck.isSelected();
-        cfg.useMacro = controls.useMacroCheck.isSelected();
-        // macroSequence is updated via the record button
 
         applyProfileToHook(activeProfileName);
     }
@@ -536,7 +530,6 @@ public class App extends Application {
                 controls.repeatCheck.setSelected(cfg.repeatEnabled);
                 controls.untilClickCheck.setSelected(cfg.repeatUntilClick);
                 controls.chordCheck.setSelected(cfg.isChord);
-                controls.useMacroCheck.setSelected(cfg.useMacro);
                 controls.repeatIntervalSlider.setValue(cfg.repeatIntervalMs);
 
                 // Clear slots first
