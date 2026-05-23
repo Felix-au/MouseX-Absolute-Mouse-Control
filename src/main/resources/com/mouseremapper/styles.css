@@ -1,0 +1,179 @@
+/* Custom premium theme for Mouse Remapper */
+
+.root {
+    -fx-font-family: 'Segoe UI', 'Outfit', 'Inter', sans-serif;
+    -fx-background-color: linear-gradient(to bottom, #0F1016, #1A1B26);
+}
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical, .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .thumb, .scroll-bar:horizontal .thumb {
+    -fx-background-color: rgba(139, 92, 246, 0.3);
+    -fx-background-radius: 6;
+}
+
+.scroll-bar:vertical .thumb:hover, .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: rgba(139, 92, 246, 0.6);
+}
+
+/* Button Card */
+.button-card {
+    -fx-background-color: rgba(30, 31, 46, 0.4);
+    -fx-background-radius: 12px;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-padding: 18px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.25), 10, 0, 0, 6);
+}
+
+.button-card:hover {
+    -fx-border-color: rgba(139, 92, 246, 0.4);
+    -fx-background-color: rgba(30, 31, 46, 0.55);
+}
+
+.card-title {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+/* CheckBox custom styling */
+.check-box {
+    -fx-text-fill: #A0AEC0;
+}
+
+.check-box:selected {
+    -fx-text-fill: #FFFFFF;
+}
+
+.check-box > .box {
+    -fx-background-color: rgba(255, 255, 255, 0.06);
+    -fx-background-radius: 4px;
+    -fx-border-color: rgba(255, 255, 255, 0.15);
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+}
+
+.check-box:hover > .box {
+    -fx-border-color: #8B5CF6;
+}
+
+.check-box:selected > .box {
+    -fx-background-color: #8B5CF6;
+    -fx-border-color: #8B5CF6;
+    -fx-effect: dropshadow(three-pass-box, rgba(139, 92, 246, 0.4), 8, 0, 0, 0);
+}
+
+.check-box > .box > .mark {
+    -fx-background-color: #FFFFFF;
+}
+
+/* ComboBox custom styling */
+.combo-box {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(255, 255, 255, 0.12);
+    -fx-border-radius: 6px;
+    -fx-text-fill: #FFFFFF;
+    -fx-padding: 4px 8px;
+}
+
+.combo-box:hover {
+    -fx-border-color: #8B5CF6;
+}
+
+.combo-box:focused {
+    -fx-border-color: #8B5CF6;
+    -fx-background-color: rgba(139, 92, 246, 0.1);
+}
+
+.combo-box > .list-view {
+    -fx-background-color: #1A1B26;
+    -fx-background-radius: 6px;
+    -fx-border-color: rgba(255, 255, 255, 0.12);
+    -fx-border-radius: 6px;
+}
+
+.combo-box > .list-view .list-cell {
+    -fx-text-fill: #E2E8F0;
+    -fx-background-color: transparent;
+    -fx-padding: 6px 12px;
+}
+
+.combo-box > .list-view .list-cell:hover {
+    -fx-background-color: rgba(139, 92, 246, 0.2);
+    -fx-text-fill: #FFFFFF;
+}
+
+.combo-box > .list-view .list-cell:selected {
+    -fx-background-color: #8B5CF6;
+    -fx-text-fill: #FFFFFF;
+}
+
+.combo-box .cell {
+    -fx-text-fill: #FFFFFF;
+}
+
+/* Action Buttons */
+.action-button {
+    -fx-background-color: linear-gradient(to right, #4F46E5, #7C3AED);
+    -fx-background-radius: 8px;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 24px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(124, 58, 237, 0.3), 10, 0, 0, 4);
+}
+
+.action-button:hover {
+    -fx-background-color: linear-gradient(to right, #5A52E7, #8B5CF6);
+    -fx-effect: dropshadow(three-pass-box, rgba(139, 92, 246, 0.5), 12, 0, 0, 6);
+}
+
+.action-button:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+/* Glassmorphic Secondary Button */
+.secondary-button {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-background-radius: 8px;
+    -fx-border-color: rgba(255, 255, 255, 0.12);
+    -fx-border-radius: 8px;
+    -fx-text-fill: #E2E8F0;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 9px 20px;
+    -fx-cursor: hand;
+}
+
+.secondary-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+    -fx-border-color: rgba(255, 255, 255, 0.25);
+    -fx-text-fill: #FFFFFF;
+}
+
+.secondary-button:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+/* Status Indicator */
+.status-indicator {
+    -fx-background-radius: 50%;
+}

@@ -1,0 +1,337 @@
+package com.mouseremapper;
+
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.shape.Circle;
+import javafx.stage.Stage;
+
+import java.util.*;
+
+public class App extends Application {
+
+    private static final Map<String, Integer> KEY_MAP = new LinkedHashMap<>();
+    static {
+        KEY_MAP.put("Tab", 9);
+        KEY_MAP.put("Enter", 13);
+        KEY_MAP.put("Esc", 27);
+        KEY_MAP.put("Space", 32);
+        for (char c = 'A'; c <= 'Z'; c++) {
+            KEY_MAP.put(String.valueOf(c), (int) c);
+        }
+        for (char c = '0'; c <= '9'; c++) {
+            KEY_MAP.put(String.valueOf(c), (int) c);
+        }
+        KEY_MAP.put("Left", 37);
+        KEY_MAP.put("Up", 38);
+        KEY_MAP.put("Right", 39);
+        KEY_MAP.put("Down", 40);
+        KEY_MAP.put("Shift", 16);
+        KEY_MAP.put("Ctrl", 17);
+    }
+
+    private static final String[] BUTTON_LABELS = {
+            "Mouse Button 1 (Left Click)",
+            "Mouse Button 2 (Right Click)",
+            "Mouse Button 3 (Middle Click)",
+            "Mouse Button 4 (X1 / Back)",
+            "Mouse Button 5 (X2 / Forward)"
+    };
+
+    private final HookManager hookManager = new HookManager();
+    private final ConfigManager configManager = new ConfigManager(hookManager);
+
+    private static class ButtonCardControls {
+        CheckBox enableCheck;
+        CheckBox repeatCheck;
+        CheckBox untilClickCheck;
+        CheckBox[] slotChecks = new CheckBox[3];
+        @SuppressWarnings("unchecked")
+        ComboBox<String>[] slotCombos = new ComboBox[3];
+    }
+
+    private final ButtonCardControls[] allCards = new ButtonCardControls[5];
+    private boolean updatingUI = false;
+
+    private Circle statusIndicator;
+    private Label statusText;
+    private Button startStopBtn;
+    private CheckBox autostartCheck;
+
+    @Override
+    public void start(Stage primaryStage) {
+        // Load initial config presets
+        configManager.loadConfig();
+
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(24));
+        root.setAlignment(Pos.TOP_CENTER);
+
+        // --- Header Section ---
+        HBox headerContainer = new HBox();
+        headerContainer.setAlignment(Pos.CENTER_LEFT);
+        headerContainer.setSpacing(20);
+
+        VBox titleContainer = new VBox(4);
+        titleContainer.setAlignment(Pos.CENTER_LEFT);
+        Label titleLabel = new Label("MOUSE REMAPPER");
+        titleLabel.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 24px; -fx-font-weight: 900; -fx-letter-spacing: 1px;");
+        Label subtitleLabel = new Label("WINDOWS NATIVE HOOKING ENGINE (JAVA MIGRATION)");
+        subtitleLabel.setStyle("-fx-text-fill: #A0AEC0; -fx-font-size: 11px; -fx-font-weight: bold;");
+        titleContainer.getChildren().addAll(titleLabel, subtitleLabel);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Autostart Checkbox
+        autostartCheck = new CheckBox("Autostart on Boot");
+        autostartCheck.setSelected(Autostart.isAutostartEnabled());
+        autostartCheck.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal) {
+                Autostart.enableAutostart();
+            } else {
+                Autostart.disableAutostart();
+            }
+        });
+
+        headerContainer.getChildren().addAll(titleContainer, spacer, autostartCheck);
+
+        // --- Scrollable Mappings Grid ---
+        VBox cardsContainer = new VBox(16);
+        cardsContainer.setPadding(new Insets(4, 12, 12, 4));
+        cardsContainer.setAlignment(Pos.TOP_CENTER);
+
+        for (int i = 0; i < 5; i++) {
+            final int buttonIndex = i + 1;
+            VBox card = createButtonCard(buttonIndex);
+            cardsContainer.getChildren().add(card);
+        }
+
+        ScrollPane scrollPane = new ScrollPane(cardsContainer);
+        scrollPane.setFitToWidth(true);
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+
+        // --- Footer Control Panel ---
+        HBox footer = new HBox(20);
+        footer.setAlignment(Pos.CENTER);
+        footer.setPadding(new Insets(12, 0, 0, 0));
+
+        // Status Indicator
+        HBox statusBox = new HBox(8);
+        statusBox.setAlignment(Pos.CENTER_LEFT);
+        statusIndicator = new Circle(6);
+        statusIndicator.getStyleClass().add("status-indicator");
+        statusText = new Label("Stopped");
+        statusText.setStyle("-fx-text-fill: #A0AEC0; -fx-font-weight: bold; -fx-font-size: 13px;");
+        statusBox.getChildren().addAll(statusIndicator, statusText);
+        updateStatusVisuals(false);
+
+        Region footerSpacer = new Region();
+        HBox.setHgrow(footerSpacer, Priority.ALWAYS);
+
+        // Buttons
+        startStopBtn = new Button("START HOOK");
+        startStopBtn.getStyleClass().add("action-button");
+        startStopBtn.setOnAction(e -> toggleHook());
+
+        Button saveBtn = new Button("Save Preset");
+        saveBtn.getStyleClass().add("secondary-button");
+        saveBtn.setOnAction(e -> configManager.saveConfig());
+
+        Button loadBtn = new Button("Load Preset");
+        loadBtn.getStyleClass().add("secondary-button");
+        loadBtn.setOnAction(e -> {
+            configManager.loadConfig();
+            refreshUI();
+        });
+
+        footer.getChildren().addAll(statusBox, footerSpacer, loadBtn, saveBtn, startStopBtn);
+
+        root.getChildren().addAll(headerContainer, scrollPane, footer);
+
+        Scene scene = new Scene(root, 680, 640);
+        scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/com/mouseremapper/styles.css")).toExternalForm());
+
+        // Initialize UI settings from the loaded config
+        refreshUI();
+
+        primaryStage.setTitle("Mouse Remapper (Java)");
+        primaryStage.setScene(scene);
+        primaryStage.setMinWidth(620);
+        primaryStage.setMinHeight(500);
+        primaryStage.setOnCloseRequest(e -> {
+            hookManager.stopHook();
+            Platform.exit();
+            System.exit(0);
+        });
+        primaryStage.show();
+    }
+
+    private VBox createButtonCard(int buttonIndex) {
+        VBox card = new VBox(12);
+        card.getStyleClass().add("button-card");
+
+        // Card Title
+        Label title = new Label(BUTTON_LABELS[buttonIndex - 1]);
+        title.getStyleClass().add("card-title");
+        card.getChildren().add(title);
+
+        ButtonCardControls controls = new ButtonCardControls();
+        allCards[buttonIndex - 1] = controls;
+
+        // Slots for 3 key remappings
+        HBox slotsContainer = new HBox(16);
+        slotsContainer.setAlignment(Pos.CENTER_LEFT);
+
+        for (int j = 0; j < 3; j++) {
+            final int slotIdx = j;
+            HBox slotRow = new HBox(6);
+            slotRow.setAlignment(Pos.CENTER_LEFT);
+
+            CheckBox slotCheck = new CheckBox("Slot " + (j + 1));
+            slotCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
+
+            ComboBox<String> slotCombo = new ComboBox<>();
+            slotCombo.getItems().addAll(KEY_MAP.keySet());
+            slotCombo.getSelectionModel().select(0);
+            slotCombo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
+            slotCombo.setPrefWidth(100);
+
+            // Disable combo box if slot is not checked
+            slotCombo.disableProperty().bind(slotCheck.selectedProperty().not());
+
+            slotRow.getChildren().addAll(slotCheck, slotCombo);
+            slotsContainer.getChildren().add(slotRow);
+
+            controls.slotChecks[j] = slotCheck;
+            controls.slotCombos[j] = slotCombo;
+        }
+        card.getChildren().add(slotsContainer);
+
+        // Control Settings Row (Enable, Repeat, Until Click)
+        HBox settingsRow = new HBox(20);
+        settingsRow.setAlignment(Pos.CENTER_LEFT);
+        settingsRow.setPadding(new Insets(4, 0, 0, 0));
+
+        controls.enableCheck = new CheckBox("Enable remap");
+        controls.enableCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
+
+        controls.repeatCheck = new CheckBox("Enable repeat");
+        controls.repeatCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
+
+        controls.untilClickCheck = new CheckBox("Repeat until click");
+        controls.untilClickCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
+
+        // Disable until click checkbox if repeat is not enabled
+        controls.untilClickCheck.disableProperty().bind(controls.repeatCheck.selectedProperty().not());
+
+        settingsRow.getChildren().addAll(controls.enableCheck, controls.repeatCheck, controls.untilClickCheck);
+        card.getChildren().add(settingsRow);
+
+        return card;
+    }
+
+    private void updateRemap(int buttonIndex) {
+        if (updatingUI) return;
+
+        ButtonCardControls controls = allCards[buttonIndex - 1];
+        if (controls == null) return;
+
+        List<Integer> keys = new ArrayList<>();
+        for (int j = 0; j < 3; j++) {
+            if (controls.slotChecks[j].isSelected()) {
+                String selectedKey = controls.slotCombos[j].getValue();
+                Integer vkCode = KEY_MAP.get(selectedKey);
+                if (vkCode != null) {
+                    keys.add(vkCode);
+                }
+            }
+        }
+
+        hookManager.setRemap(
+                buttonIndex,
+                keys,
+                controls.enableCheck.isSelected(),
+                controls.repeatCheck.isSelected(),
+                controls.untilClickCheck.isSelected()
+        );
+    }
+
+    private void refreshUI() {
+        updatingUI = true;
+        try {
+            Map<Integer, HookManager.RemapConfig> config = hookManager.getConfig();
+            for (int i = 0; i < 5; i++) {
+                HookManager.RemapConfig cfg = config.get(i + 1);
+                ButtonCardControls controls = allCards[i];
+                if (cfg == null || controls == null) continue;
+
+                controls.enableCheck.setSelected(cfg.isRemapped);
+                controls.repeatCheck.setSelected(cfg.repeatEnabled);
+                controls.untilClickCheck.setSelected(cfg.repeatUntilClick);
+
+                // Clear slots first
+                for (int j = 0; j < 3; j++) {
+                    controls.slotChecks[j].setSelected(false);
+                    controls.slotCombos[j].getSelectionModel().select(0);
+                }
+
+                // Fill from config
+                List<Integer> keys = cfg.virtualKeys;
+                for (int j = 0; j < keys.size() && j < 3; j++) {
+                    int vk = keys.get(j);
+                    String keyName = getKeyNameByCode(vk);
+                    if (keyName != null) {
+                        controls.slotChecks[j].setSelected(true);
+                        controls.slotCombos[j].getSelectionModel().select(keyName);
+                    }
+                }
+            }
+        } finally {
+            updatingUI = false;
+        }
+    }
+
+    private String getKeyNameByCode(int code) {
+        for (Map.Entry<String, Integer> entry : KEY_MAP.entrySet()) {
+            if (entry.getValue() == code) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private void toggleHook() {
+        if (hookManager.isHookActive()) {
+            hookManager.stopHook();
+            startStopBtn.setText("START HOOK");
+            startStopBtn.setStyle(""); // Reverts to CSS default
+            updateStatusVisuals(false);
+        } else {
+            hookManager.startHook();
+            startStopBtn.setText("STOP HOOK");
+            startStopBtn.setStyle("-fx-background-color: linear-gradient(to right, #EF4444, #DC2626); -fx-effect: dropshadow(three-pass-box, rgba(239, 68, 68, 0.4), 10, 0, 0, 4);");
+            updateStatusVisuals(true);
+        }
+    }
+
+    private void updateStatusVisuals(boolean running) {
+        if (running) {
+            statusIndicator.setStyle("-fx-fill: #10B981; -fx-effect: dropshadow(three-pass-box, rgba(16, 185, 129, 0.6), 10, 0, 0, 0);");
+            statusText.setText("Running");
+            statusText.setStyle("-fx-text-fill: #10B981; -fx-font-weight: bold;");
+        } else {
+            statusIndicator.setStyle("-fx-fill: #EF4444; -fx-effect: dropshadow(three-pass-box, rgba(239, 68, 68, 0.6), 10, 0, 0, 0);");
+            statusText.setText("Stopped");
+            statusText.setStyle("-fx-text-fill: #EF4444; -fx-font-weight: bold;");
+        }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
