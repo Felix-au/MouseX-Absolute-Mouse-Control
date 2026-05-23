@@ -63,7 +63,7 @@ public class HookManager {
     }
 
     private final Map<Integer, RemapConfig> config = new HashMap<>();
-    private final AtomicBoolean[] repeatActive = new AtomicBoolean[5];
+    private final AtomicBoolean[] repeatActive = new AtomicBoolean[7];
     private HHOOK hHook = null;
     private int hookThreadId = 0;
     private volatile boolean hookActive = false;
@@ -77,7 +77,7 @@ public class HookManager {
     };
 
     public HookManager() {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 7; i++) {
             repeatActive[i] = new AtomicBoolean(false);
             config.put(i + 1, new RemapConfig());
         }
@@ -190,6 +190,10 @@ public class HookManager {
                 int mouseData = mouseStruct.mouseData;
                 int xbtn = (mouseData >> 16) & 0xFFFF;
                 btn = (xbtn == 1) ? 4 : 5;
+            } else if (w == 0x020A) {                     // WM_MOUSEWHEEL
+                int mouseData = mouseStruct.mouseData;
+                short delta = (short) ((mouseData >> 16) & 0xFFFF);
+                btn = (delta > 0) ? 6 : 7;
             }
 
             if (btn > 0) {
@@ -199,6 +203,11 @@ public class HookManager {
                 }
 
                 if (cfg != null && cfg.isRemapped) {
+                    if (btn == 6 || btn == 7) {
+                        simulateKey(btn);
+                        return new LRESULT(1); // Block native scroll event
+                    }
+
                     boolean isDown = (w == 0x0201 || w == 0x0204 || w == 0x0207 || w == 0x020B);
                     boolean isUp = (w == 0x0202 || w == 0x0205 || w == 0x0208 || w == 0x020C);
                     int btnIdx = btn - 1;

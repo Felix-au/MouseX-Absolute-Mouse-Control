@@ -39,9 +39,11 @@ public class App extends Application {
     private static final String[] BUTTON_LABELS = {
             "Mouse Button 1 (Left Click)",
             "Mouse Button 2 (Right Click)",
-            "Mouse Button 3 (Middle Click)",
+            "Mouse Button 3 (Middle Click / Wheel Click)",
             "Mouse Button 4 (X1 / Back)",
-            "Mouse Button 5 (X2 / Forward)"
+            "Mouse Button 5 (X2 / Forward)",
+            "Mouse Action 6 (Wheel Up)",
+            "Mouse Action 7 (Wheel Down)"
     };
 
     private final HookManager hookManager = new HookManager();
@@ -56,7 +58,7 @@ public class App extends Application {
         ComboBox<String>[] slotCombos = new ComboBox[3];
     }
 
-    private final ButtonCardControls[] allCards = new ButtonCardControls[5];
+    private final ButtonCardControls[] allCards = new ButtonCardControls[7];
     private boolean updatingUI = false;
 
     private Circle statusIndicator;
@@ -107,7 +109,7 @@ public class App extends Application {
         cardsContainer.setPadding(new Insets(4, 12, 12, 4));
         cardsContainer.setAlignment(Pos.TOP_CENTER);
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 7; i++) {
             final int buttonIndex = i + 1;
             VBox card = createButtonCard(buttonIndex);
             cardsContainer.getChildren().add(card);
@@ -232,8 +234,13 @@ public class App extends Application {
         controls.untilClickCheck = new CheckBox("Repeat until click");
         controls.untilClickCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
 
-        // Disable until click checkbox if repeat is not enabled
-        controls.untilClickCheck.disableProperty().bind(controls.repeatCheck.selectedProperty().not());
+        if (buttonIndex == 6 || buttonIndex == 7) {
+            controls.repeatCheck.setVisible(false);
+            controls.untilClickCheck.setVisible(false);
+        } else {
+            // Disable until click checkbox if repeat is not enabled
+            controls.untilClickCheck.disableProperty().bind(controls.repeatCheck.selectedProperty().not());
+        }
 
         settingsRow.getChildren().addAll(controls.enableCheck, controls.repeatCheck, controls.untilClickCheck);
         card.getChildren().add(settingsRow);
@@ -271,7 +278,7 @@ public class App extends Application {
         updatingUI = true;
         try {
             Map<Integer, HookManager.RemapConfig> config = hookManager.getConfig();
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 7; i++) {
                 HookManager.RemapConfig cfg = config.get(i + 1);
                 ButtonCardControls controls = allCards[i];
                 if (cfg == null || controls == null) continue;
