@@ -17,6 +17,13 @@ import java.awt.TrayIcon;
 import java.awt.PopupMenu;
 import java.awt.MenuItem;
 
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.Psapi;
+import com.sun.jna.platform.win32.WinDef.HWND;
+import com.sun.jna.platform.win32.WinNT.HANDLE;
+import com.sun.jna.ptr.IntByReference;
+
 import java.util.*;
 
 public class App extends Application {
@@ -69,6 +76,10 @@ public class App extends Application {
     private final ButtonCardControls[] allCards = new ButtonCardControls[7];
     private boolean updatingUI = false;
 
+    private Map<String, Map<Integer, HookManager.RemapConfig>> allProfiles = new HashMap<>();
+    private String activeProfileName = "Default";
+    private ComboBox<String> profileCombo;
+
     private Circle statusIndicator;
     private Label statusText;
     private Button startStopBtn;
@@ -78,8 +89,13 @@ public class App extends Application {
     public void start(Stage primaryStage) {
         Platform.setImplicitExit(false); // Keep running in background
 
-        // Load initial config presets
-        configManager.loadConfig();
+        allProfiles = configManager.loadProfiles();
+        if (!allProfiles.containsKey("Default")) {
+            Map<Integer, HookManager.RemapConfig> def = new HashMap<>();
+            for (int i = 1; i <= 7; i++) def.put(i, new HookManager.RemapConfig());
+            allProfiles.put("Default", def);
+        }
+        applyProfileToHook(activeProfileName);
 
         VBox root = new VBox(20);
         root.setPadding(new Insets(24));
@@ -101,6 +117,45 @@ public class App extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        // Profile Manager
+        HBox profileBox = new HBox(8);
+        profileBox.setAlignment(Pos.CENTER_LEFT);
+        Label profileLbl = new Label("Profile:");
+        profileLbl.setStyle("-fx-text-fill: #A0AEC0;");
+        profileCombo = new ComboBox<>();
+        profileCombo.getItems().addAll(allProfiles.keySet());
+        profileCombo.setValue(activeProfileName);
+        profileCombo.setOnAction(e -> {
+            if (updatingUI) return;
+            activeProfileName = profileCombo.getValue();
+            applyProfileToHook(activeProfileName);
+            refreshUI();
+        });
+        Button addProfileBtn = new Button("+");
+        addProfileBtn.getStyleClass().add("secondary-button");
+        addProfileBtn.setOnAction(e -> {
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("New App Profile");
+            dialog.setHeaderText("Enter executable name (e.g., chrome.exe)");
+            dialog.showAndWait().ifPresent(name -> {
+                String p = name.toLowerCase().trim();
+                if (!p.isEmpty() && !allProfiles.containsKey(p)) {
+                    Map<Integer, HookManager.RemapConfig> def = new HashMap<>();
+                    for (int i = 1; i <= 7; i++) def.put(i, new HookManager.RemapConfig());
+                    allProfiles.put(p, def);
+                    updatingUI = true;
+                    profileCombo.getItems().add(p);
+                    profileCombo.setValue(p);
+                    updatingUI = false;
+                    activeProfileName = p;
+                    applyProfileToHook(p);
+                    refreshUI();
+                    configManager.saveProfiles(allProfiles);
+                }
+            });
+        });
+        profileBox.getChildren().addAll(profileLbl, profileCombo, addProfileBtn);
+
         // Autostart Checkbox
         autostartCheck = new CheckBox("Autostart on Boot");
         autostartCheck.setSelected(Autostart.isAutostartEnabled());
@@ -112,7 +167,7 @@ public class App extends Application {
             }
         });
 
-        headerContainer.getChildren().addAll(titleContainer, spacer, autostartCheck);
+        headerContainer.getChildren().addAll(titleContainer, spacer, profileBox, autostartCheck);
 
         // --- Scrollable Mappings Grid ---
         VBox cardsContainer = new VBox(16);
@@ -154,12 +209,18 @@ public class App extends Application {
 
         Button saveBtn = new Button("Save Preset");
         saveBtn.getStyleClass().add("secondary-button");
-        saveBtn.setOnAction(e -> configManager.saveConfig());
+        saveBtn.setOnAction(e -> configManager.saveProfiles(allProfiles));
 
         Button loadBtn = new Button("Load Preset");
         loadBtn.getStyleClass().add("secondary-button");
         loadBtn.setOnAction(e -> {
-            configManager.loadConfig();
+            allProfiles = configManager.loadProfiles();
+            if (!allProfiles.containsKey(activeProfileName)) activeProfileName = "Default";
+            updatingUI = true;
+            profileCombo.getItems().setAll(allProfiles.keySet());
+            profileCombo.setValue(activeProfileName);
+            updatingUI = false;
+            applyProfileToHook(activeProfileName);
             refreshUI();
         });
 
@@ -177,6 +238,8 @@ public class App extends Application {
         // Initialize UI settings from the loaded config
         refreshUI();
 
+        startActiveWindowMonitor();
+
         primaryStage.setTitle("Mouse Remapper");
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(620);
@@ -189,6 +252,62 @@ public class App extends Application {
             primaryStage.hide(); // Minimize to tray
         });
         primaryStage.show();
+    }
+
+    private String getForegroundProcessName() {
+        HWND hwnd = User32.INSTANCE.GetForegroundWindow();
+        if (hwnd == null) return "Default";
+        IntByReference pid = new IntByReference();
+        User32.INSTANCE.GetWindowThreadProcessId(hwnd, pid);
+        HANDLE process = Kernel32.INSTANCE.OpenProcess(0x0400 | 0x0010, false, pid.getValue());
+        if (process == null) return "Default";
+        char[] path = new char[1024];
+        int len = Psapi.INSTANCE.GetModuleFileNameExW(process, null, path, path.length);
+        Kernel32.INSTANCE.CloseHandle(process);
+        if (len == 0) return "Default";
+        String fullPath = new String(path, 0, len);
+        int lastSlash = fullPath.lastIndexOf('\\');
+        if (lastSlash >= 0) return fullPath.substring(lastSlash + 1).toLowerCase();
+        return fullPath.toLowerCase();
+    }
+
+    private void startActiveWindowMonitor() {
+        Thread monitor = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(500);
+                    if (!hookManager.isHookActive()) continue; // Only switch if hook is active
+
+                    String exe = getForegroundProcessName();
+                    String targetProfile = allProfiles.containsKey(exe) ? exe : "Default";
+
+                    if (!targetProfile.equals(activeProfileName)) {
+                        activeProfileName = targetProfile;
+                        applyProfileToHook(activeProfileName);
+                        
+                        Platform.runLater(() -> {
+                            updatingUI = true;
+                            profileCombo.setValue(activeProfileName);
+                            updatingUI = false;
+                            refreshUI();
+                        });
+                    }
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        }, "ActiveWindowMonitor");
+        monitor.setDaemon(true);
+        monitor.start();
+    }
+
+    private void applyProfileToHook(String profileName) {
+        Map<Integer, HookManager.RemapConfig> profile = allProfiles.get(profileName);
+        if (profile == null) return;
+        for (Map.Entry<Integer, HookManager.RemapConfig> entry : profile.entrySet()) {
+            HookManager.RemapConfig cfg = entry.getValue();
+            hookManager.setRemap(entry.getKey(), cfg.virtualKeys, cfg.isRemapped, cfg.repeatEnabled, cfg.repeatUntilClick, cfg.repeatIntervalMs, cfg.isChord);
+        }
     }
 
     private java.awt.Image createTrayIconImage() {
@@ -347,15 +466,23 @@ public class App extends Application {
             }
         }
 
-        hookManager.setRemap(
-                buttonIndex,
-                keys,
-                controls.enableCheck.isSelected(),
-                controls.repeatCheck.isSelected(),
-                controls.untilClickCheck.isSelected(),
-                (int) controls.repeatIntervalSlider.getValue(),
-                controls.chordCheck.isSelected()
-        );
+        Map<Integer, HookManager.RemapConfig> currentProfile = allProfiles.get(activeProfileName);
+        if (currentProfile == null) return;
+        
+        HookManager.RemapConfig cfg = currentProfile.get(buttonIndex);
+        if (cfg == null) {
+            cfg = new HookManager.RemapConfig();
+            currentProfile.put(buttonIndex, cfg);
+        }
+        
+        cfg.virtualKeys = new ArrayList<>(keys);
+        cfg.isRemapped = controls.enableCheck.isSelected();
+        cfg.repeatEnabled = controls.repeatCheck.isSelected();
+        cfg.repeatUntilClick = controls.untilClickCheck.isSelected();
+        cfg.repeatIntervalMs = (int) controls.repeatIntervalSlider.getValue();
+        cfg.isChord = controls.chordCheck.isSelected();
+
+        applyProfileToHook(activeProfileName);
     }
 
     private void refreshUI() {
