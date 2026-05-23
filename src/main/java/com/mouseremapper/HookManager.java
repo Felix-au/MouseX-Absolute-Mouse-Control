@@ -23,6 +23,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class HookManager {
 
+    public static class MacroEvent {
+        public int vkCode;
+        public boolean isDown;
+        public long delayMs;
+    }
+
     public static class RemapConfig {
         public List<Integer> virtualKeys = new ArrayList<>();
         public boolean isRemapped = false;
@@ -30,6 +36,8 @@ public class HookManager {
         public boolean repeatUntilClick = false;
         public int repeatIntervalMs = 100;
         public boolean isChord = false;
+        public boolean useMacro = false;
+        public List<MacroEvent> macroSequence = new ArrayList<>();
     }
 
     // Custom MSLLHOOKSTRUCT definition to ensure full public access across all JNA versions
@@ -85,7 +93,7 @@ public class HookManager {
         }
     }
 
-    public synchronized void setRemap(int button, List<Integer> keys, boolean remap, boolean repeat, boolean untilClick, int repeatIntervalMs, boolean chord) {
+    public synchronized void setRemap(int button, List<Integer> keys, boolean remap, boolean repeat, boolean untilClick, int repeatIntervalMs, boolean chord, boolean useMacro, List<MacroEvent> macroSequence) {
         RemapConfig cfg = config.get(button);
         if (cfg != null) {
             cfg.virtualKeys = new ArrayList<>(keys);
@@ -94,6 +102,8 @@ public class HookManager {
             cfg.repeatUntilClick = untilClick;
             cfg.repeatIntervalMs = repeatIntervalMs;
             cfg.isChord = chord;
+            cfg.useMacro = useMacro;
+            cfg.macroSequence = new ArrayList<>(macroSequence);
         }
     }
 
@@ -103,6 +113,61 @@ public class HookManager {
 
     public synchronized boolean isHookActive() {
         return hookActive;
+    }
+
+    private HHOOK hKeyboardHook = null;
+    private final List<MacroEvent> currentRecording = new ArrayList<>();
+    private long lastMacroEventTime = 0;
+
+    private final MyHOOKPROC keyboardHookCallback = new MyHOOKPROC() {
+        @Override
+        public LRESULT callback(int nCode, WPARAM wParam, LPARAM lParam) {
+            if (nCode >= 0) {
+                int w = wParam.intValue();
+                Pointer p = new Pointer(lParam.longValue());
+                int vkCode = p.getInt(0);
+                
+                boolean isDown = (w == 0x0100 || w == 0x0104);
+                boolean isUp = (w == 0x0101 || w == 0x0105);
+                
+                if (isDown || isUp) {
+                    long now = System.currentTimeMillis();
+                    long delay = (lastMacroEventTime == 0) ? 0 : (now - lastMacroEventTime);
+                    lastMacroEventTime = now;
+                    
+                    MacroEvent evt = new MacroEvent();
+                    evt.vkCode = vkCode;
+                    evt.isDown = isDown;
+                    evt.delayMs = delay;
+                    
+                    synchronized(currentRecording) {
+                        currentRecording.add(evt);
+                    }
+                    
+                    return new LRESULT(1);
+                }
+            }
+            return MyUser32.INSTANCE.CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
+        }
+    };
+
+    public void startRecordingMacro() {
+        synchronized(currentRecording) {
+            currentRecording.clear();
+            lastMacroEventTime = 0;
+        }
+        HMODULE hMod = Kernel32.INSTANCE.GetModuleHandle(null);
+        hKeyboardHook = MyUser32.INSTANCE.SetWindowsHookEx(13, keyboardHookCallback, hMod, 0);
+    }
+    
+    public List<MacroEvent> stopRecordingMacro() {
+        if (hKeyboardHook != null) {
+            MyUser32.INSTANCE.UnhookWindowsHookEx(hKeyboardHook);
+            hKeyboardHook = null;
+        }
+        synchronized(currentRecording) {
+            return new ArrayList<>(currentRecording);
+        }
     }
 
     public synchronized void startHook() {
@@ -167,7 +232,24 @@ public class HookManager {
         synchronized (this) {
             cfg = config.get(button);
         }
-        if (cfg == null || cfg.virtualKeys.isEmpty()) return;
+        if (cfg == null) return;
+
+        if (cfg.useMacro && !cfg.macroSequence.isEmpty()) {
+            List<MacroEvent> seq = new ArrayList<>(cfg.macroSequence);
+            Thread macroThread = new Thread(() -> {
+                for (MacroEvent evt : seq) {
+                    if (evt.delayMs > 0) {
+                        try { Thread.sleep(evt.delayMs); } catch (InterruptedException e) {}
+                    }
+                    MyUser32.INSTANCE.keybd_event((byte) evt.vkCode, (byte) 0, evt.isDown ? 0 : 2, 0);
+                }
+            });
+            macroThread.setDaemon(true);
+            macroThread.start();
+            return;
+        }
+
+        if (cfg.virtualKeys.isEmpty()) return;
 
         if (cfg.isChord) {
             for (int key : cfg.virtualKeys) {

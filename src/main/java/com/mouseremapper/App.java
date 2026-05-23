@@ -66,6 +66,8 @@ public class App extends Application {
         CheckBox repeatCheck;
         CheckBox untilClickCheck;
         CheckBox chordCheck;
+        CheckBox useMacroCheck;
+        Button recordMacroBtn;
         Slider repeatIntervalSlider;
         Label repeatIntervalLabel;
         CheckBox[] slotChecks = new CheckBox[3];
@@ -306,7 +308,7 @@ public class App extends Application {
         if (profile == null) return;
         for (Map.Entry<Integer, HookManager.RemapConfig> entry : profile.entrySet()) {
             HookManager.RemapConfig cfg = entry.getValue();
-            hookManager.setRemap(entry.getKey(), cfg.virtualKeys, cfg.isRemapped, cfg.repeatEnabled, cfg.repeatUntilClick, cfg.repeatIntervalMs, cfg.isChord);
+            hookManager.setRemap(entry.getKey(), cfg.virtualKeys, cfg.isRemapped, cfg.repeatEnabled, cfg.repeatUntilClick, cfg.repeatIntervalMs, cfg.isChord, cfg.useMacro, cfg.macroSequence);
         }
     }
 
@@ -420,6 +422,40 @@ public class App extends Application {
         controls.chordCheck = new CheckBox("As Chord");
         controls.chordCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
 
+        controls.useMacroCheck = new CheckBox("Use Macro");
+        controls.useMacroCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
+        
+        controls.recordMacroBtn = new Button("Record Macro");
+        controls.recordMacroBtn.getStyleClass().add("secondary-button");
+        controls.recordMacroBtn.setOnAction(e -> {
+            Alert startAlert = new Alert(Alert.AlertType.INFORMATION);
+            startAlert.setTitle("Macro Recorder");
+            startAlert.setHeaderText("Recording Macro for Button " + buttonIndex);
+            startAlert.setContentText("Press OK to start recording your keyboard inputs.\nIMPORTANT: Your keyboard will be intercepted while recording.");
+            startAlert.showAndWait().ifPresent(res -> {
+                hookManager.startRecordingMacro();
+                Alert stopAlert = new Alert(Alert.AlertType.WARNING);
+                stopAlert.setTitle("Recording in Progress");
+                stopAlert.setHeaderText("Recording...");
+                stopAlert.setContentText("Type your macro.\nWhen finished, CLICK OK BELOW with your MOUSE.");
+                stopAlert.showAndWait();
+                
+                List<HookManager.MacroEvent> seq = hookManager.stopRecordingMacro();
+                
+                Map<Integer, HookManager.RemapConfig> currentProfile = allProfiles.get(activeProfileName);
+                if (currentProfile != null) {
+                    HookManager.RemapConfig cfg = currentProfile.get(buttonIndex);
+                    if (cfg == null) {
+                        cfg = new HookManager.RemapConfig();
+                        currentProfile.put(buttonIndex, cfg);
+                    }
+                    cfg.macroSequence = seq;
+                    controls.useMacroCheck.setSelected(true);
+                    updateRemap(buttonIndex);
+                }
+            });
+        });
+
         controls.repeatIntervalSlider = new Slider(10, 1000, 100);
         controls.repeatIntervalSlider.setPrefWidth(100);
         controls.repeatIntervalLabel = new Label("100ms");
@@ -443,7 +479,7 @@ public class App extends Application {
             sliderBox.visibleProperty().bind(controls.repeatCheck.selectedProperty());
         }
 
-        settingsRow.getChildren().addAll(controls.enableCheck, controls.chordCheck, controls.repeatCheck, controls.untilClickCheck, sliderBox);
+        settingsRow.getChildren().addAll(controls.enableCheck, controls.chordCheck, controls.useMacroCheck, controls.recordMacroBtn, controls.repeatCheck, controls.untilClickCheck, sliderBox);
         card.getChildren().add(settingsRow);
 
         return card;
@@ -481,6 +517,8 @@ public class App extends Application {
         cfg.repeatUntilClick = controls.untilClickCheck.isSelected();
         cfg.repeatIntervalMs = (int) controls.repeatIntervalSlider.getValue();
         cfg.isChord = controls.chordCheck.isSelected();
+        cfg.useMacro = controls.useMacroCheck.isSelected();
+        // macroSequence is updated via the record button
 
         applyProfileToHook(activeProfileName);
     }
@@ -498,6 +536,7 @@ public class App extends Application {
                 controls.repeatCheck.setSelected(cfg.repeatEnabled);
                 controls.untilClickCheck.setSelected(cfg.repeatUntilClick);
                 controls.chordCheck.setSelected(cfg.isChord);
+                controls.useMacroCheck.setSelected(cfg.useMacro);
                 controls.repeatIntervalSlider.setValue(cfg.repeatIntervalMs);
 
                 // Clear slots first

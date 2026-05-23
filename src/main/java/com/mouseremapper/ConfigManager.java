@@ -30,6 +30,8 @@ public class ConfigManager {
         public boolean untilClick;
         public int repeatIntervalMs = 100;
         public boolean isChord = false;
+        public boolean useMacro = false;
+        public List<HookManager.MacroEvent> macroSequence = new ArrayList<>();
     }
 
     public void saveProfiles(Map<String, Map<Integer, HookManager.RemapConfig>> allProfiles) {
@@ -46,6 +48,8 @@ public class ConfigManager {
                     jsonEntry.untilClick = entry.getValue().repeatUntilClick;
                     jsonEntry.repeatIntervalMs = entry.getValue().repeatIntervalMs;
                     jsonEntry.isChord = entry.getValue().isChord;
+                    jsonEntry.useMacro = entry.getValue().useMacro;
+                    jsonEntry.macroSequence = new ArrayList<>(entry.getValue().macroSequence);
                     jsonConfig.put(String.valueOf(entry.getKey()), jsonEntry);
                 }
                 jsonProfiles.put(profileEntry.getKey(), jsonConfig);
@@ -114,6 +118,8 @@ public class ConfigManager {
             cfg.repeatUntilClick = jsonEntry.untilClick;
             cfg.repeatIntervalMs = jsonEntry.repeatIntervalMs == 0 ? 100 : jsonEntry.repeatIntervalMs;
             cfg.isChord = jsonEntry.isChord;
+            cfg.useMacro = jsonEntry.useMacro;
+            cfg.macroSequence = jsonEntry.macroSequence != null ? new ArrayList<>(jsonEntry.macroSequence) : new ArrayList<>();
             profile.put(button, cfg);
         }
         return profile;
