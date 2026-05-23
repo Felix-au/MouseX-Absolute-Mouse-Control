@@ -2,7 +2,7 @@
 target/
 
 # Local configuration presets (often ignored or kept, keeping config.json out of source control is standard)
-# config.json
+config.json
 
 # IDEs
 .idea/
