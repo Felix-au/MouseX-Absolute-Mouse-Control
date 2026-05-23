@@ -50,9 +50,12 @@
     -fx-font-weight: bold;
 }
 
-/* CheckBox custom styling */
+/* CheckBox custom styling - turned into beautiful physical sliding toggle switches! */
 .check-box {
     -fx-text-fill: #A0AEC0;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
 }
 
 .check-box:selected {
@@ -61,24 +64,35 @@
 
 .check-box > .box {
     -fx-background-color: rgba(255, 255, 255, 0.06);
-    -fx-background-radius: 4px;
-    -fx-border-color: rgba(255, 255, 255, 0.15);
-    -fx-border-radius: 4px;
+    -fx-background-radius: 12px;
+    -fx-border-color: rgba(255, 255, 255, 0.18);
+    -fx-border-radius: 12px;
     -fx-border-width: 1px;
+    -fx-padding: 5px 14px; /* Width and height of toggle track */
+    -fx-background-insets: 0;
 }
 
 .check-box:hover > .box {
-    -fx-border-color: #8B5CF6;
+    -fx-border-color: rgba(139, 92, 246, 0.6);
 }
 
 .check-box:selected > .box {
-    -fx-background-color: #8B5CF6;
+    -fx-background-color: rgba(139, 92, 246, 0.2);
     -fx-border-color: #8B5CF6;
-    -fx-effect: dropshadow(three-pass-box, rgba(139, 92, 246, 0.4), 8, 0, 0, 0);
+    -fx-effect: dropshadow(three-pass-box, rgba(139, 92, 246, 0.3), 8, 0, 0, 0);
 }
 
 .check-box > .box > .mark {
-    -fx-background-color: #FFFFFF;
+    -fx-background-color: #718096; /* Grey slider thumb when inactive */
+    -fx-shape: "M0 6 A6 6 0 1 1 12 6 A6 6 0 1 1 0 6 Z"; /* Creates a perfect circle */
+    -fx-scale-x: 1.3;
+    -fx-scale-y: 1.3;
+    -fx-translate-x: -7px; /* Left-aligned */
+}
+
+.check-box:selected > .box > .mark {
+    -fx-background-color: #A78BFA; /* Lavender slider thumb when active */
+    -fx-translate-x: 7px; /* Slides right smoothly */
 }
 
 /* ComboBox custom styling */
@@ -100,30 +114,34 @@
     -fx-background-color: rgba(139, 92, 246, 0.1);
 }
 
-.combo-box > .list-view {
+.combo-box .cell {
+    -fx-text-fill: #FFFFFF;
+}
+
+/* ComboBox Popup List View styling (FIXES white-on-white visibility issue) */
+.combo-box-popup > .list-view {
     -fx-background-color: #1A1B26;
     -fx-background-radius: 6px;
-    -fx-border-color: rgba(255, 255, 255, 0.12);
+    -fx-border-color: rgba(255, 255, 255, 0.15);
     -fx-border-radius: 6px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.4), 10, 0, 0, 8);
+    -fx-background-insets: 0;
+    -fx-padding: 0;
 }
 
-.combo-box > .list-view .list-cell {
+.combo-box-popup > .list-view .list-cell {
+    -fx-background-color: #1A1B26;
     -fx-text-fill: #E2E8F0;
-    -fx-background-color: transparent;
-    -fx-padding: 6px 12px;
+    -fx-padding: 8px 12px;
 }
 
-.combo-box > .list-view .list-cell:hover {
+.combo-box-popup > .list-view .list-cell:hover {
     -fx-background-color: rgba(139, 92, 246, 0.2);
     -fx-text-fill: #FFFFFF;
 }
 
-.combo-box > .list-view .list-cell:selected {
+.combo-box-popup > .list-view .list-cell:filled:selected {
     -fx-background-color: #8B5CF6;
-    -fx-text-fill: #FFFFFF;
-}
-
-.combo-box .cell {
     -fx-text-fill: #FFFFFF;
 }
 
