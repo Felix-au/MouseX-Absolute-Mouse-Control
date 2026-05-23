@@ -58,6 +58,7 @@ public class App extends Application {
         CheckBox enableCheck;
         CheckBox repeatCheck;
         CheckBox untilClickCheck;
+        CheckBox chordCheck;
         Slider repeatIntervalSlider;
         Label repeatIntervalLabel;
         CheckBox[] slotChecks = new CheckBox[3];
@@ -297,6 +298,9 @@ public class App extends Application {
         controls.untilClickCheck = new CheckBox("Repeat until click");
         controls.untilClickCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
 
+        controls.chordCheck = new CheckBox("As Chord");
+        controls.chordCheck.selectedProperty().addListener((obs, oldVal, newVal) -> updateRemap(buttonIndex));
+
         controls.repeatIntervalSlider = new Slider(10, 1000, 100);
         controls.repeatIntervalSlider.setPrefWidth(100);
         controls.repeatIntervalLabel = new Label("100ms");
@@ -320,7 +324,7 @@ public class App extends Application {
             sliderBox.visibleProperty().bind(controls.repeatCheck.selectedProperty());
         }
 
-        settingsRow.getChildren().addAll(controls.enableCheck, controls.repeatCheck, controls.untilClickCheck, sliderBox);
+        settingsRow.getChildren().addAll(controls.enableCheck, controls.chordCheck, controls.repeatCheck, controls.untilClickCheck, sliderBox);
         card.getChildren().add(settingsRow);
 
         return card;
@@ -349,7 +353,8 @@ public class App extends Application {
                 controls.enableCheck.isSelected(),
                 controls.repeatCheck.isSelected(),
                 controls.untilClickCheck.isSelected(),
-                (int) controls.repeatIntervalSlider.getValue()
+                (int) controls.repeatIntervalSlider.getValue(),
+                controls.chordCheck.isSelected()
         );
     }
 
@@ -365,6 +370,7 @@ public class App extends Application {
                 controls.enableCheck.setSelected(cfg.isRemapped);
                 controls.repeatCheck.setSelected(cfg.repeatEnabled);
                 controls.untilClickCheck.setSelected(cfg.repeatUntilClick);
+                controls.chordCheck.setSelected(cfg.isChord);
                 controls.repeatIntervalSlider.setValue(cfg.repeatIntervalMs);
 
                 // Clear slots first

@@ -29,6 +29,7 @@ public class ConfigManager {
         public boolean repeat;
         public boolean untilClick;
         public int repeatIntervalMs = 100;
+        public boolean isChord = false;
     }
 
     public void saveConfig() {
@@ -43,6 +44,7 @@ public class ConfigManager {
                 jsonEntry.repeat = entry.getValue().repeatEnabled;
                 jsonEntry.untilClick = entry.getValue().repeatUntilClick;
                 jsonEntry.repeatIntervalMs = entry.getValue().repeatIntervalMs;
+                jsonEntry.isChord = entry.getValue().isChord;
                 jsonConfig.put(String.valueOf(entry.getKey()), jsonEntry);
             }
 
@@ -77,7 +79,8 @@ public class ConfigManager {
                                 jsonEntry.remap,
                                 jsonEntry.repeat,
                                 jsonEntry.untilClick,
-                                jsonEntry.repeatIntervalMs == 0 ? 100 : jsonEntry.repeatIntervalMs
+                                jsonEntry.repeatIntervalMs == 0 ? 100 : jsonEntry.repeatIntervalMs,
+                                jsonEntry.isChord
                         );
                     }
                     System.out.println("Config loaded successfully.");

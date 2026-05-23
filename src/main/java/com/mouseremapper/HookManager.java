@@ -29,6 +29,7 @@ public class HookManager {
         public boolean repeatEnabled = false;
         public boolean repeatUntilClick = false;
         public int repeatIntervalMs = 100;
+        public boolean isChord = false;
     }
 
     // Custom MSLLHOOKSTRUCT definition to ensure full public access across all JNA versions
@@ -84,7 +85,7 @@ public class HookManager {
         }
     }
 
-    public synchronized void setRemap(int button, List<Integer> keys, boolean remap, boolean repeat, boolean untilClick, int repeatIntervalMs) {
+    public synchronized void setRemap(int button, List<Integer> keys, boolean remap, boolean repeat, boolean untilClick, int repeatIntervalMs, boolean chord) {
         RemapConfig cfg = config.get(button);
         if (cfg != null) {
             cfg.virtualKeys = new ArrayList<>(keys);
@@ -92,6 +93,7 @@ public class HookManager {
             cfg.repeatEnabled = repeat;
             cfg.repeatUntilClick = untilClick;
             cfg.repeatIntervalMs = repeatIntervalMs;
+            cfg.isChord = chord;
         }
     }
 
@@ -167,11 +169,18 @@ public class HookManager {
         }
         if (cfg == null || cfg.virtualKeys.isEmpty()) return;
 
-        for (int key : cfg.virtualKeys) {
-            // Key Down (dwFlags = 0)
-            MyUser32.INSTANCE.keybd_event((byte) key, (byte) 0, 0, 0);
-            // Key Up (dwFlags = 2 for KEYEVENTF_KEYUP)
-            MyUser32.INSTANCE.keybd_event((byte) key, (byte) 0, 2, 0);
+        if (cfg.isChord) {
+            for (int key : cfg.virtualKeys) {
+                MyUser32.INSTANCE.keybd_event((byte) key, (byte) 0, 0, 0);
+            }
+            for (int key : cfg.virtualKeys) {
+                MyUser32.INSTANCE.keybd_event((byte) key, (byte) 0, 2, 0);
+            }
+        } else {
+            for (int key : cfg.virtualKeys) {
+                MyUser32.INSTANCE.keybd_event((byte) key, (byte) 0, 0, 0);
+                MyUser32.INSTANCE.keybd_event((byte) key, (byte) 0, 2, 0);
+            }
         }
     }
 
