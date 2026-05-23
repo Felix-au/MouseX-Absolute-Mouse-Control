@@ -4,11 +4,13 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
+import javafx.stage.Screen;
 
 import java.util.*;
 
@@ -80,7 +82,7 @@ public class App extends Application {
         titleContainer.setAlignment(Pos.CENTER_LEFT);
         Label titleLabel = new Label("MOUSE REMAPPER");
         titleLabel.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 24px; -fx-font-weight: 900; -fx-letter-spacing: 1px;");
-        Label subtitleLabel = new Label("WINDOWS NATIVE HOOKING ENGINE (JAVA MIGRATION)");
+        Label subtitleLabel = new Label("WINDOWS NATIVE HOOKING ENGINE");
         subtitleLabel.setStyle("-fx-text-fill: #A0AEC0; -fx-font-size: 11px; -fx-font-weight: bold;");
         titleContainer.getChildren().addAll(titleLabel, subtitleLabel);
 
@@ -153,13 +155,17 @@ public class App extends Application {
 
         root.getChildren().addAll(headerContainer, scrollPane, footer);
 
-        Scene scene = new Scene(root, 680, 640);
+        // Start with 50% screen width
+        Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+        double startWidth = screenBounds.getWidth() * 0.5;
+
+        Scene scene = new Scene(root, startWidth, 640);
         scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/com/mouseremapper/styles.css")).toExternalForm());
 
         // Initialize UI settings from the loaded config
         refreshUI();
 
-        primaryStage.setTitle("Mouse Remapper (Java)");
+        primaryStage.setTitle("Mouse Remapper");
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(620);
         primaryStage.setMinHeight(500);

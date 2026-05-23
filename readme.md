@@ -1,6 +1,6 @@
-# 🖱️ Mouse Remapper (Java Edition)
+# 🖱️ Mouse Remapper
 
-**Mouse Remapper** is a powerful, lightweight native system utility for Windows migrated from C++ to **Java 21 + JavaFX**. It lets you intercept system-wide mouse events and remap up to **five mouse buttons** to virtually any common keyboard input combination. 
+**Mouse Remapper** is a powerful, lightweight native system utility for Windows. It lets you intercept system-wide mouse events and remap up to **five mouse buttons** to virtually any common keyboard input combination. 
 
 Designed with an ultra-premium, dark glassmorphic interface, Mouse Remapper supports advanced input remapping patterns such as **continuous repeat**, **toggle-repeat until click**, and **custom configuration presets**, all powered by a low-level native Windows hooking system (`SetWindowsHookEx`) via **JNA**.
 
