@@ -382,3 +382,9 @@ Profiles are automatically saved to `profiles.json` in the working directory:
 
 - 🔗 GitHub: [github.com/Felix-au](https://github.com/Felix-au)
 - 📧 Email: [harshit.soni.23cse@bmu.edu.in](mailto:harshit.soni.23cse@bmu.edu.in)
+
+---
+
+<p align="center">
+  <sub>Built for users who want absolute mouse control without the bloat.</sub>
+</p>

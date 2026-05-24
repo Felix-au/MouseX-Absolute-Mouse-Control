@@ -387,3 +387,7 @@ To distribute MouseX as a standalone binary:
 | `ConfigManager` | Serialization helper; saves and loads user mapping configurations |
 | `Autostart` | Registry management; registers/unregisters application boot commands |
 | `styles.css` | Custom dark-violet stylesheets and sliding toggle switches |
+
+---
+
+*MouseX: Absolute Mouse Control v1.0 — Built with JavaFX + JNA Low-Level Hooks*
