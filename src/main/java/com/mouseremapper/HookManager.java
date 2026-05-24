@@ -186,28 +186,34 @@ public class HookManager {
 
     private LRESULT mouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
         if (nCode >= 0) {
-            int btn = 0;
             int w = wParam.intValue();
 
-            // Native low-level mouse info pointer is located in lParam
-            Pointer p = new Pointer(lParam.longValue());
-            MyMSLLHOOKSTRUCT mouseStruct = new MyMSLLHOOKSTRUCT(p);
+            // Only process messages we actually care about (skip WM_MOUSEMOVE entirely!)
+            if (w == 0x0201 || w == 0x0202 || // WM_LBUTTONDOWN / WM_LBUTTONUP
+                w == 0x0204 || w == 0x0205 || // WM_RBUTTONDOWN / WM_RBUTTONUP
+                w == 0x0207 || w == 0x0208 || // WM_MBUTTONDOWN / WM_MBUTTONUP
+                w == 0x020B || w == 0x020C || // WM_XBUTTONDOWN / WM_XBUTTONUP
+                w == 0x020A) {                // WM_MOUSEWHEEL
 
-            // Detect button based on mouse window message
-            if (w == 0x0201 || w == 0x0202) btn = 1;      // WM_LBUTTONDOWN / WM_LBUTTONUP
-            else if (w == 0x0204 || w == 0x0205) btn = 2; // WM_RBUTTONDOWN / WM_RBUTTONUP
-            else if (w == 0x0207 || w == 0x0208) btn = 3; // WM_MBUTTONDOWN / WM_MBUTTONUP
-            else if (w == 0x020B || w == 0x020C) {        // WM_XBUTTONDOWN / WM_XBUTTONUP
-                int mouseData = mouseStruct.mouseData;
-                int xbtn = (mouseData >> 16) & 0xFFFF;
-                btn = (xbtn == 1) ? 4 : 5;
-            } else if (w == 0x020A) {                     // WM_MOUSEWHEEL
-                int mouseData = mouseStruct.mouseData;
-                short delta = (short) ((mouseData >> 16) & 0xFFFF);
-                btn = (delta > 0) ? 6 : 7;
-            }
+                int btn = 0;
+                if (w == 0x0201 || w == 0x0202) btn = 1;
+                else if (w == 0x0204 || w == 0x0205) btn = 2;
+                else if (w == 0x0207 || w == 0x0208) btn = 3;
+                else if (w == 0x020B || w == 0x020C) {
+                    Pointer p = new Pointer(lParam.longValue());
+                    MyMSLLHOOKSTRUCT mouseStruct = new MyMSLLHOOKSTRUCT(p);
+                    int mouseData = mouseStruct.mouseData;
+                    int xbtn = (mouseData >> 16) & 0xFFFF;
+                    btn = (xbtn == 1) ? 4 : 5;
+                } else if (w == 0x020A) {
+                    Pointer p = new Pointer(lParam.longValue());
+                    MyMSLLHOOKSTRUCT mouseStruct = new MyMSLLHOOKSTRUCT(p);
+                    int mouseData = mouseStruct.mouseData;
+                    short delta = (short) ((mouseData >> 16) & 0xFFFF);
+                    btn = (delta > 0) ? 6 : 7;
+                }
 
-            if (btn > 0) {
+                if (btn > 0) {
                 RemapConfig cfg;
                 synchronized (this) {
                     cfg = config.get(btn);
@@ -281,6 +287,7 @@ public class HookManager {
                     return new LRESULT(1);
                 }
             }
+        }
         }
         return MyUser32.INSTANCE.CallNextHookEx(hHook, nCode, wParam, lParam);
     }
