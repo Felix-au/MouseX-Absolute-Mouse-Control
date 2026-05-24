@@ -260,9 +260,9 @@ public class App extends Application {
 
         root.getChildren().addAll(headerContainer, scrollPane, footer);
 
-        // Start with 50% screen width
+        // Start with 50% screen width + 10% increase (55% total)
         Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
-        double startWidth = screenBounds.getWidth() * 0.5;
+        double startWidth = screenBounds.getWidth() * 0.55;
 
         Scene scene = new Scene(root, startWidth, 640);
         scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/com/mouseremapper/styles.css")).toExternalForm());
@@ -274,7 +274,7 @@ public class App extends Application {
 
         primaryStage.setTitle("Mouse Remapper");
         primaryStage.setScene(scene);
-        primaryStage.setMinWidth(620);
+        primaryStage.setMinWidth(682);
         primaryStage.setMinHeight(500);
         
         setupSystemTray(primaryStage);
