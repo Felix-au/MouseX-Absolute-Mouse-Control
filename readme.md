@@ -243,13 +243,19 @@ Simulate keypresses with JNA keybd_event (support chords or sequence lists)
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option A — Download Pre-compiled Binary (Recommended)
+
+If you don't want to build from source, you can download `MouseX.exe` (v1.0.0) directly from the [GitHub Releases](https://github.com/Felix-au/MouseX-Absolute-Mouse-Control/releases) page and run it immediately on Windows.
+
+### Option B — Build and Run from Source
+
+#### Prerequisites
 
 - **Windows 10 or 11** (64-bit recommended)
 - **JDK 21 or higher**
 - **Maven 3.8+**
 
-### Install & Run
+#### Install & Run
 
 1. **Clone the repository:**
    ```powershell

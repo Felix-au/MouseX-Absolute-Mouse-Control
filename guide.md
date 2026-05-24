@@ -7,7 +7,22 @@ A local-first, low-level mouse-to-keyboard remapping utility for Windows. Config
 
 ## 🚀 How to Run
 
-### Option A — From Source (Development)
+### Option A — Download Pre-compiled Binary (Recommended)
+
+If you don't want to build from source, you can download `MouseX.exe` (v1.0.0) directly from the [GitHub Releases](https://github.com/Felix-au/MouseX-Absolute-Mouse-Control/releases) page.
+
+### Option B — Run the Standalone EXE
+
+If you have built or downloaded `MouseX.exe`:
+
+```
+Just double-click MouseX.exe
+```
+
+> [!NOTE]
+> The EXE is a native wrapper generated using Launch4j. It loads settings from the local `profiles.json` and runs silently in the background, utilizing the system Java path mapped in `%JAVA_HOME%`.
+
+### Option C — From Source (Development)
 
 **Prerequisites:** Windows 10/11, JDK 21+, Maven 3.8+
 
@@ -20,17 +35,6 @@ mvn javafx:run
 ```
 
 The application window will open showing the current remapping cards for buttons 1 through 7, a profile manager, and a global **START HOOK** trigger in the footer.
-
-### Option B — Standalone EXE
-
-If you have built or downloaded `MouseX.exe`:
-
-```
-Just double-click MouseX.exe
-```
-
-> [!NOTE]
-> The EXE is a native wrapper generated using Launch4j. It loads settings from the local `profiles.json` and runs silently in the background, utilizing the system Java path mapped in `%JAVA_HOME%`.
 
 ---
 

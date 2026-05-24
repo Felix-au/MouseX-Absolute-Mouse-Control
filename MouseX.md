@@ -360,6 +360,9 @@ Windows Registry auto-launch paths are set via JNA's `Advapi32Util`:
 
 ## Packaging & Launch4j Execution
 
+> [!TIP]
+> Pre-built binaries are available! Users can download the compiled `MouseX.exe` directly from the [GitHub Releases](https://github.com/Felix-au/MouseX-Absolute-Mouse-Control/releases) page instead of packaging the application themselves.
+
 To distribute MouseX as a standalone binary:
 
 1. **Build shaded JAR**:
