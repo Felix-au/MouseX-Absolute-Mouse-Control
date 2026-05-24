@@ -15,3 +15,7 @@ config.json
 
 # Shaded POMs
 dependency-reduced-pom.xml
+
+# Executables and logs
+*.exe
+launch4j.log
