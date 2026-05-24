@@ -38,7 +38,7 @@ Just double-click MouseX.exe
 
 1. **Launch MouseX** — The Dashboard opens displaying the remapping cards. The global status in the footer shows `Stopped` (Red circle).
 2. **Select Mapped Keys** — Choose a mouse button card (e.g., *Mouse Button 4 (X1 / Back)*).
-3. **Configure Slots** — Check `Slot 1` and select a key (e.g., `Ctrl` or `Space`). You can enable up to 3 slots for combitnations.
+3. **Configure Slots** — Check `Slot 1` and select a key (e.g., `Ctrl` or `Space`). You can enable up to 3 slots for combinations.
 4. **Choose Remap Settings:**
    - **Enable remap:** Toggle this to activate remapping for the button.
    - **As Chord:** If checked, slots fire simultaneously (like a chord combo). If unchecked, they fire in rapid sequence.
