@@ -11,6 +11,8 @@ import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import javafx.stage.Screen;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
@@ -115,6 +117,17 @@ public class App extends Application {
         subtitleLabel.setStyle("-fx-text-fill: #A0AEC0; -fx-font-size: 11px; -fx-font-weight: bold;");
         titleContainer.getChildren().addAll(titleLabel, subtitleLabel);
 
+        ImageView logoView = null;
+        try {
+            Image logoImage = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/MouseX.png")));
+            logoView = new ImageView(logoImage);
+            logoView.setFitWidth(36);
+            logoView.setFitHeight(36);
+            logoView.setPreserveRatio(true);
+        } catch (Exception e) {
+            System.err.println("Could not load header logo: " + e.getMessage());
+        }
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
@@ -199,7 +212,11 @@ public class App extends Application {
             }
         });
 
-        headerContainer.getChildren().addAll(titleContainer, spacer, profileBox, autostartCheck);
+        if (logoView != null) {
+            headerContainer.getChildren().addAll(logoView, titleContainer, spacer, profileBox, autostartCheck);
+        } else {
+            headerContainer.getChildren().addAll(titleContainer, spacer, profileBox, autostartCheck);
+        }
 
         // --- Scrollable Mappings Grid ---
         VBox cardsContainer = new VBox(16);
@@ -273,6 +290,11 @@ public class App extends Application {
         startActiveWindowMonitor();
 
         primaryStage.setTitle("MouseX");
+        try {
+            primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/MouseX.png"))));
+        } catch (Exception e) {
+            System.err.println("Could not load application stage icon: " + e.getMessage());
+        }
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(682);
         primaryStage.setMinHeight(500);
@@ -343,14 +365,18 @@ public class App extends Application {
     }
 
     private java.awt.Image createTrayIconImage() {
-        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-        java.awt.Graphics2D g2d = img.createGraphics();
-        g2d.setColor(java.awt.Color.decode("#8B5CF6")); // Purple
-        g2d.fillRect(0, 0, 16, 16);
-        g2d.setColor(java.awt.Color.WHITE);
-        g2d.drawRect(0, 0, 15, 15);
-        g2d.dispose();
-        return img;
+        try {
+            return javax.imageio.ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream("/MouseX.png")));
+        } catch (Exception e) {
+            java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            java.awt.Graphics2D g2d = img.createGraphics();
+            g2d.setColor(java.awt.Color.decode("#8B5CF6")); // Purple
+            g2d.fillRect(0, 0, 16, 16);
+            g2d.setColor(java.awt.Color.WHITE);
+            g2d.drawRect(0, 0, 15, 15);
+            g2d.dispose();
+            return img;
+        }
     }
 
     private void setupSystemTray(Stage primaryStage) {
