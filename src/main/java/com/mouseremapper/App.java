@@ -109,9 +109,9 @@ public class App extends Application {
 
         VBox titleContainer = new VBox(4);
         titleContainer.setAlignment(Pos.CENTER_LEFT);
-        Label titleLabel = new Label("MOUSE REMAPPER");
+        Label titleLabel = new Label("MOUSEX");
         titleLabel.setStyle("-fx-text-fill: #FFFFFF; -fx-font-size: 24px; -fx-font-weight: 900; -fx-letter-spacing: 1px;");
-        Label subtitleLabel = new Label("WINDOWS NATIVE HOOKING ENGINE");
+        Label subtitleLabel = new Label("ABSOLUTE MOUSE CONTROL");
         subtitleLabel.setStyle("-fx-text-fill: #A0AEC0; -fx-font-size: 11px; -fx-font-weight: bold;");
         titleContainer.getChildren().addAll(titleLabel, subtitleLabel);
 
@@ -272,7 +272,7 @@ public class App extends Application {
 
         startActiveWindowMonitor();
 
-        primaryStage.setTitle("Mouse Remapper");
+        primaryStage.setTitle("MouseX");
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(682);
         primaryStage.setMinHeight(500);
@@ -379,7 +379,7 @@ public class App extends Application {
             popup.addSeparator();
             popup.add(exitItem);
             
-            TrayIcon trayIcon = new TrayIcon(createTrayIconImage(), "Mouse Remapper", popup);
+            TrayIcon trayIcon = new TrayIcon(createTrayIconImage(), "MouseX", popup);
             trayIcon.setImageAutoSize(true);
             trayIcon.addActionListener(e -> Platform.runLater(() -> {
                 primaryStage.show();
