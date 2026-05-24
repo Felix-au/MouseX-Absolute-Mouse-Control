@@ -12,3 +12,6 @@ config.json
 .classpath
 .project
 *.user
+
+# Shaded POMs
+dependency-reduced-pom.xml
